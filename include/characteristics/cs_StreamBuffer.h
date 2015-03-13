@@ -18,44 +18,31 @@
 using namespace BLEpp;
 
 /**
- * General class that can be used to send arrays of values over Bluetooth, of which the first byte is a type
+ * General typename That can be used to send arrays of values over Bluetooth, of which the first byte is a type
  * or identifier byte, the second one the length of the payload (so, minus identifier and length byte itself)
  * and the next bytes are the payload itself.
  */
-template <typename T, typename U = uint8_t>
-class StreamBuffer : public Serializable {
+template <typename T, int I>
+class StreamBufferGeneric : public Serializable {
 
+
+public:
 	/* Define the size of the header in bytes:
 	 *
 	 * 1 Byte for the type
-	 * x Byte for the length, where x is defined by type U
+	 * x Byte for the length, where x is defined by type uint8_t
 	 */
-	#define SB_HEADER_SIZE     sizeof(uint8_t) + sizeof(U)
+	#define SB_HEADER_SIZE     sizeof(uint8_t) + sizeof(uint8_t)
 
-private:
-	/* type enum, defines the type of data in the payload, see <ConfigurationTypes> */
-	uint8_t _type;
-
-	/* length of the payload (in number of elements) */
-	U _plength;
-
-	/* pointer to the array storing the payload */
-	T* _payload;
-
-	/* capacity, maximum length of the payload. array is
-	 * initialized with capacity * sizeof(T) bytes
-	 */
-	U _capacity;
-
-public:
 	/* Default constructor
 	 *
 	 * Create and initialize a stream buffer. The payload array is NOT initialized
-	 * for this constructor. In order to use the stream buffer, <StreamBuffer::init()>
+	 * for this constructor. In order to use the stream buffer, <StreamBufferGeneric::init()>
 	 * has to be called first. If you know the capacity at creation, you can use
-	 * the constructor <StreamBuffer(U capacity)
+	 * the constructor <StreamBufferGeneric(uint8_t capacity)
 	 */
-	StreamBuffer() :_type(0), _plength(0), _payload(NULL), _capacity(0) {};
+	StreamBufferGeneric() :_type(0), _plength(0), _payload(NULL), _capacity(0) {
+	};
 
 	/* Constructor initializes also the payload array
 	 *
@@ -64,7 +51,7 @@ public:
 	 * For this constructor the payload array is initialized with size
 	 * capacity * sizeof(T)
 	 */
-	StreamBuffer(U capacity) : StreamBuffer() {
+	StreamBufferGeneric(uint8_t capacity) : StreamBufferGeneric() {
 		init(capacity);
 	}
 
@@ -75,16 +62,21 @@ public:
 	 * If the object was initialized beforehand already, the old payload array
 	 * is freed prior to the new allocation.
 	 */
-	void init(U capacity) {
+	void init(uint8_t capacity) {
+		if (capacity > I) {
+			LOGe("capacity too big");
+			return;
+		}
 		if (_payload) {
 			free(_payload);
 		}
 		_capacity = capacity;
 		_payload = (T*)calloc(capacity, sizeof(T));
+		LOGi("done");
 	}
 
 	/* @inherit */
-	bool operator!=(const StreamBuffer &other) {
+	bool operator!=(const StreamBufferGeneric &other) {
 		if (_type != other._type) return true;
 		if (_plength != other._plength) return true;
 		if (memcmp(_payload, other._payload, _capacity * sizeof(T)) != 0) return true;
@@ -103,7 +95,7 @@ public:
 		return true;
 	}
 
-	/* Create a StreamBuffer object from the string
+	/* Create a StreamBufferGeneric object from the string
 	 *
 	 * @str the string with which the buffer should be initialized
 	 *
@@ -113,11 +105,11 @@ public:
 	 *
 	 * *Note* needs specialization, for types other than uint8_t
 	 *
-	 * @return the created StreamBuffer object
+	 * @return the created StreamBufferGeneric object
 	 */
-	static StreamBuffer<T>* fromString(std::string& str);
+	//	static StreamBufferGeneric<T, I>* fromString(std::string& str);
 
-	/* Create a StreamBuffer object from the payload
+	/* Create a StreamBufferGeneric object from the payload
 	 *
 	 * @payload pointer to the payload with which the stream buffer
 	 *   should be filled
@@ -129,10 +121,10 @@ public:
 	 * @length. then the payload from @payload is copied to the
 	 * buffer's payload array
 	 *
-	 * @return the created StreamBuffer object
+	 * @return the created StreamBufferGeneric object
 	 */
-	static StreamBuffer<T>* fromPayload(T *payload, U plength) {
-		StreamBuffer<T>* buffer = new StreamBuffer<uint8_t>(plength);
+	static StreamBufferGeneric<T, I>* fromPayload(T *payload, uint8_t plength) {
+		StreamBufferGeneric<T, I>* buffer = new StreamBufferGeneric<T, I>(plength);
 		buffer->_plength = plength;
 		memcpy(buffer->_payload, payload, buffer->_plength * sizeof(T));
 		return buffer;
@@ -205,7 +197,7 @@ public:
 	 *
 	 * @return number of elements stored
 	 */
-	inline U length() const { return _plength; }
+	inline uint8_t length() const { return _plength; }
 
 	/* Get a pointer to the payload array
 	 *
@@ -231,7 +223,7 @@ public:
 	 * If plength is bigger than the capacity, only the
 	 * first capacity elements will be copied
 	 */
-	void setPayload(T *payload, U plength) {
+	void setPayload(T *payload, uint8_t plength) {
 		if (!_payload) {
 			LOGe("buffer not initialized!");
 			return;
@@ -250,7 +242,8 @@ public:
 
 	/* @inherit */
     uint16_t getMaxLength() const {
-		return BLE_GATTS_VAR_ATTR_LEN_MAX;
+    	LOGi("getMaxLength, capacity: %d, I: %d", _capacity, I);
+    	return I * sizeof(T) + SB_HEADER_SIZE;
     }
 
 	/* Serialize entire class.
@@ -260,12 +253,82 @@ public:
 	 *
 	 * Needs specialization
 	 */
-    void serialize(uint8_t* buffer, uint16_t length) const;
+    void serialize(uint8_t* buffer, uint16_t length) const {
+    	LOGi("wtf");
+    }
 
 	/* Deserialize class
 	 *
 	 * Needs specialization
 	 */
-    void deserialize(uint8_t* buffer, uint16_t length);
+    void deserialize(uint8_t* buffer, uint16_t length) {
+    	LOGi("wtf");
+    }
 
+protected:
+	/* type enum, defines the type of data in the payload, see <ConfigurationTypes> */
+	uint8_t _type;
+
+	/* length of the payload (in number of elements) */
+	uint8_t _plength;
+
+	/* pointer to the array storing the payload */
+	T* _payload;
+
+	/* capacity, maximum length of the payload. array is
+	 * initialized with capacity * sizeof(T) bytes
+	 */
+	uint8_t _capacity;
+
+};
+
+template<typename T, int I = 32>
+class StreamBuffer : public StreamBufferGeneric<T, I> {
+public:
+};
+
+template<int I>
+class StreamBuffer<uint8_t, I> : public StreamBufferGeneric<uint8_t, I> {
+public:
+	StreamBuffer() : StreamBufferGeneric<uint8_t, I>() {}
+
+	StreamBuffer(uint8_t capacity) : StreamBufferGeneric<uint8_t, I>(capacity) {}
+
+	static StreamBuffer<uint8_t, I>* fromString(std::string& str) {
+		StreamBuffer<uint8_t, I>* buffer = new StreamBuffer<uint8_t, I>(str.length());
+		buffer->_plength = str.length();
+		memcpy(buffer->_payload, str.c_str(), buffer->_plength);
+		return buffer;
+	}
+
+	static StreamBuffer<uint8_t, I>* fromPayload(uint8_t *payload, uint8_t plength) {
+		return (StreamBuffer<uint8_t, I>*)StreamBufferGeneric<uint8_t, I>::fromPayload(payload, plength);
+	}
+
+	void serialize(uint8_t* buffer, uint16_t length) const {
+		if (length < 3) return; // throw error
+
+		uint8_t *ptr = buffer;
+		*ptr++ = StreamBufferGeneric<uint8_t, I>::_type;
+		*ptr++ = StreamBufferGeneric<uint8_t, I>::_plength;
+
+		if (StreamBufferGeneric<uint8_t, I>::_plength) memcpy(ptr, StreamBufferGeneric<uint8_t, I>::_payload, StreamBufferGeneric<uint8_t, I>::_plength * sizeof(uint8_t));
+
+	//	LOGd("serialize...");
+	//	BLEutil::printArray(buffer, length);
+	}
+
+	void deserialize(uint8_t* buffer, uint16_t length) {
+		if (length < 3) return;
+
+		uint8_t *ptr = buffer;
+		StreamBufferGeneric<uint8_t, I>::_type = *ptr++;
+		StreamBufferGeneric<uint8_t, I>::_plength = *ptr++;
+
+		StreamBufferGeneric<uint8_t, I>::init(StreamBufferGeneric<uint8_t, I>::_plength);
+		memcpy(StreamBufferGeneric<uint8_t, I>::_payload, ptr, StreamBufferGeneric<uint8_t, I>::_plength * sizeof(uint8_t));
+
+	//	LOGd("deserialize...");
+	//	BLEutil::printArray(_payload, _plength);
+	}
 };
