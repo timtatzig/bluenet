@@ -37,9 +37,9 @@ public:
 
 	/* Update the configuration characteristic.
 	 */
-	StreamBuffer<uint8_t, CFG_BUFFER_SIZE>* readFromStorage(uint8_t type);
+	StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>* readFromStorage(uint8_t type);
 
-	void writeToConfigCharac(StreamBuffer<uint8_t, CFG_BUFFER_SIZE>& buffer);
+	void writeToConfigCharac(StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>& buffer);
 
 	/* Read configuration written by user.
 	 */
@@ -81,7 +81,7 @@ protected:
 	 * As you see these are similar to current characteristics and will replace them in the future to save space.
 	 * Every characteristic namely occupies a bit of RAM (governed by the SoftDevice, so not under our control).
 	 */
-	BLEpp::Characteristic<StreamBuffer<uint8_t, CFG_BUFFER_SIZE>>* _setConfigurationCharacteristic;
+	BLEpp::Characteristic<StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>>* _setConfigurationCharacteristic;
 	
 	/* Select configuration characteristic
 	 *
@@ -97,7 +97,7 @@ protected:
 	 *
 	 * Then each of these returns a byte array, with e.g. a name, device type, room, etc.
 	 */
-	BLEpp::Characteristic<StreamBuffer<uint8_t, CFG_BUFFER_SIZE>>* _getConfigurationCharacteristic;
+	BLEpp::Characteristic<StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>>* _getConfigurationCharacteristic;
 
 	/* Enable the temperature characteristic.
  	 */

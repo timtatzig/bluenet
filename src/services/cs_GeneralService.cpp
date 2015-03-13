@@ -167,12 +167,12 @@ void GeneralService::addMeshCharacteristic() {
 #endif
 
 void GeneralService::addSetConfigurationCharacteristic() {
-	_setConfigurationCharacteristic = createCharacteristicRef<StreamBuffer<uint8_t, CFG_BUFFER_SIZE>>();
+	_setConfigurationCharacteristic = createCharacteristicRef<StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>>();
 	(*_setConfigurationCharacteristic)
 		.setUUID(UUID(getUUID(), SET_CONFIGURATION_UUID))
 		.setName("Set Configuration")
 		.setWritable(true)
-		.onWrite([&](const StreamBuffer<uint8_t, CFG_BUFFER_SIZE>& value) -> void {
+		.onWrite([&](const StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>& value) -> void {
 			uint8_t type = value.type();
 			LOGi("Write configuration type: %i", (int)type);
 			uint8_t *payload = value.payload();
@@ -219,12 +219,12 @@ void GeneralService::writeToStorage(uint8_t type, uint8_t length, uint8_t* paylo
 	}
 }
 
-StreamBuffer<uint8_t, CFG_BUFFER_SIZE>* GeneralService::readFromStorage(uint8_t type) {
+StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>* GeneralService::readFromStorage(uint8_t type) {
 	switch(type) {
 	case CONFIG_NAME_UUID: {
 		LOGd("Read name");
 		std::string str = getBLEName();
-		StreamBuffer<uint8_t, CFG_BUFFER_SIZE>* buffer = StreamBuffer<uint8_t, CFG_BUFFER_SIZE>::fromString(str);
+		StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>* buffer = StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>::fromString(str);
 		buffer->setType(type);
 
 		LOGd("Name read %s", str.c_str());
@@ -237,7 +237,7 @@ StreamBuffer<uint8_t, CFG_BUFFER_SIZE>* GeneralService::readFromStorage(uint8_t 
 		uint8_t plen = 1;
 		uint8_t payload[plen];
 		Storage::getUint8(_storageStruct.floor, payload[0], 0);
-		StreamBuffer<uint8_t, CFG_BUFFER_SIZE>* buffer = StreamBuffer<uint8_t, CFG_BUFFER_SIZE>::fromPayload(payload, plen);
+		StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>* buffer = StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>::fromPayload(payload, plen);
 		buffer->setType(type);
 
 		LOGd("Floor level set in payload: %i with len %i", buffer->payload()[0], buffer->length());
@@ -251,7 +251,7 @@ StreamBuffer<uint8_t, CFG_BUFFER_SIZE>* GeneralService::readFromStorage(uint8_t 
 	return NULL;
 }
 
-void GeneralService::writeToConfigCharac(StreamBuffer<uint8_t, CFG_BUFFER_SIZE>& buffer) {
+void GeneralService::writeToConfigCharac(StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>& buffer) {
 	*_getConfigurationCharacteristic = buffer;
 }
 
@@ -272,7 +272,7 @@ void GeneralService::addSelectConfigurationCharacteristic() {
 }
 
 void GeneralService::addGetConfigurationCharacteristic() {
-	_getConfigurationCharacteristic = createCharacteristicRef<StreamBuffer<uint8_t, CFG_BUFFER_SIZE>>();
+	_getConfigurationCharacteristic = createCharacteristicRef<StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>>();
 	(*_getConfigurationCharacteristic)
 		.setUUID(UUID(getUUID(), GET_CONFIGURATION_UUID))
 		.setName("Get Configuration")
@@ -335,7 +335,7 @@ void GeneralService::tick() {
 
 	if (_getConfigurationCharacteristic) {
 		if (_selectConfiguration != 0xFF) {
-			StreamBuffer<uint8_t, CFG_BUFFER_SIZE>* buffer = readFromStorage(_selectConfiguration);
+			StreamBuffer<uint8_t, uint8_t, CFG_BUFFER_SIZE>* buffer = readFromStorage(_selectConfiguration);
 			if (buffer) {
 				writeToConfigCharac(*buffer);
 			}
